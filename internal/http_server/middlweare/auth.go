@@ -1,5 +1,6 @@
 package middlweare
 
+//TODO: CHECK mabe used other package name and directory
 import (
 	"context"
 	"net/http"
@@ -20,6 +21,7 @@ func Auth(next http.Handler) http.Handler {
 		const op = "internal.http_server.middlweare.Authorization()"
 
 		logger := log.With().Str("fn", op).Logger()
+		logger.Debug().Msg("auth start")
 
 		authLine := r.Header.Get("Authorization")
 
@@ -33,7 +35,7 @@ func Auth(next http.Handler) http.Handler {
 
 		auth := strings.Split(authLine, " ")
 
-		if auth[0] != "Bearer" {
+		if auth[0] != "Baerer" {
 			logger.Error().Msg("Invalid authorization scheme")
 
 			w.WriteHeader(http.StatusUnauthorized) // 401

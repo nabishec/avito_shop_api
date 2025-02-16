@@ -7,18 +7,31 @@ import (
 	"os"
 	"time"
 
+	"github.com/nabishec/avito_shop_api/cmd/db_connection"
 	"github.com/nabishec/avito_shop_api/internal/http_server/handlers/auth"
-	"github.com/nabishec/avito_shop_api/internal/http_server/handlers/shop"
+	"github.com/nabishec/avito_shop_api/internal/http_server/handlers/buy"
+	"github.com/nabishec/avito_shop_api/internal/http_server/handlers/info"
+	"github.com/nabishec/avito_shop_api/internal/http_server/handlers/send"
 	"github.com/nabishec/avito_shop_api/internal/http_server/middlweare"
 	"github.com/nabishec/avito_shop_api/internal/pkg"
 	"github.com/nabishec/avito_shop_api/internal/storage/db"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
+	_ "github.com/nabishec/avito_shop_api/docs"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+// @title API Avito shop
+// @version 1.0.0
+// @host localhost:8080
+// @BasePath /
+// @schemes http
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	//TODO: init logger
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
@@ -44,30 +57,33 @@ func main() {
 
 	//TODO: init storage postgresql
 	log.Info().Msg("Init storage")
-	storage, err := db.NewDatabase()
+	dbConnection, err := db_connection.NewDatabaseConnection()
 	if err != nil {
-		log.Error().AnErr(pkg.ErrReader(err)).Msg("Failed init storage")
+		log.Error().AnErr(pkg.ErrReader(err)).Msg("Failed init database")
 		os.Exit(1)
 	}
-	log.Info().Msg("Storage init successful")
+	log.Info().Msg("Database init successful")
 
+	storage := db.NewStorage(dbConnection.DB)
 	//TODO: init middlewear
-	router := chi.NewRouter()
+	Router := chi.NewRouter()
 
-	//TODO: getInformation :=
-	//TODO: sendCoin :=
-	buyItem := shop.NewBuyItem(storage)
+	sendCoin := send.NewSendingCoins(storage)
+	getInformation := info.NewUserInformation(storage)
+	buyItem := buy.NewBuying(storage)
 	authentication := auth.NewAuth(storage)
 
-	router.Group(func(r chi.Router) {
-		router.Post("/api/auth", authentication.ReturnAuthToken)
+	Router.Group(func(r chi.Router) {
+		r.Get("/swagger/*", httpSwagger.WrapHandler)
+		r.Post("/api/auth", authentication.ReturnAuthToken)
 	})
 
-	// Private Routes
 	// Require Authentication
-	router.Group(func(r chi.Router) {
+	Router.Group(func(r chi.Router) {
 		r.Use(middlweare.Auth)
-		router.Get("/api/buy", buyItem.BuyingItemByUser)
+		r.Get("/api/buy/{item}", buyItem.BuyingItemByUser)
+		r.Post("/api/sendCoin", sendCoin.SendCoins)
+		r.Get("/api/info", getInformation.ReturnUserInfo)
 	})
 
 	//TODO: run server
@@ -79,11 +95,11 @@ func main() {
 	idleTime, err := time.ParseDuration(os.Getenv("IDLE_TIMEOUT"))
 	if err != nil {
 		log.Error().Err(err).Msg("idle timeout not received from env")
-		idleTime = 60 * time.Second //CHECK THIS
+		idleTime = 60 * time.Second // CHECK THIS
 	}
 
 	srv := &http.Server{
-		Addr:         os.Getenv("ADDRESS"),
+		Addr:         ":" + os.Getenv("SERVER_PORT"),
 		Handler:      router,
 		ReadTimeout:  wrTime,
 		WriteTimeout: wrTime,
@@ -100,7 +116,7 @@ func main() {
 
 func loadEnv() error {
 	const op = "cmd.loadEnv()"
-	err := godotenv.Load("./configs/configuration.env")
+	err := godotenv.Load(".env")
 	if err != nil {
 		return fmt.Errorf("%s:%s", op, "failed load env file")
 	}

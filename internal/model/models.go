@@ -1,12 +1,16 @@
 package model
 
+//TODO: CHECK db teg
+
+// swagger:model AuthRequest
 type AuthRequest struct {
-	Name     string `json:"name" db:"name" validate:"required"`
+	Name     string `json:"username" db:"name" validate:"required"`
 	Password string `json:"password" db:"password" validate:"required"`
 }
 
+// swagger:model ErrorResponse
 type ErrorResponse struct {
-	Error string `json:"error"`
+	Error string `json:"errors"`
 }
 
 func ReturnErrResp(errMsg string) ErrorResponse {
@@ -19,9 +23,39 @@ type AuthResponse struct {
 	Token string `json:"token"`
 }
 
+// swagger:model SendCoinRequest
 type SendCoinRequest struct {
-	ToUser string `json:"string" db:"to_user" validate:"required"`
-	Amount int    `json:"integer" db:"to_user" validate:"required"`
+	ToUser string `json:"toUser" validate:"required"`
+	Amount int    `json:"amount" validate:"required"`
 }
 
-// TODO: add two model for req
+// swagger:model Item
+type Item struct {
+	Type     string `json:"type" db:"type"`
+	Quantity int    `json:"quantity" db:"quantity"`
+}
+
+// swagger:model Received
+type Received struct {
+	FromUser string `json:"fromUser" db:"name"`
+	Amount   int    `json:"amount" db:"amount"`
+}
+
+// swagger:model Sent
+type Sent struct {
+	ToUser string `json:"toUser" db:"name"`
+	Amount int    `json:"amount" db:"amount"`
+}
+
+// swagger:model CoinHistory
+type CoinHistory struct {
+	Received []Received `json:"received" db:"name"`
+	Sent     []Sent     `json:"sent" db:"amount"`
+}
+
+// swagger:model InfoResponse
+type InfoResponse struct {
+	Coins       int         `json:"coins" db:"coins_number"`
+	Inventory   []Item      `json:"inventory"`
+	CoinHistory CoinHistory `json:"coinHistory"`
+}

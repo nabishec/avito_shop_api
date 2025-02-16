@@ -6,15 +6,10 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/nabishec/avito_shop_api/internal/model"
 	"github.com/nabishec/avito_shop_api/internal/pkg/token"
 	"github.com/rs/zerolog/log"
 )
-
-type PostAuth interface {
-	GetUserID(model.AuthRequest) (uuid.UUID, error)
-}
 
 type Auth struct {
 	postAuth PostAuth
@@ -26,6 +21,15 @@ func NewAuth(postAuth PostAuth) Auth {
 	}
 }
 
+// @Summary Аутентификация и получение JWT-токена.
+// @Accept json
+// @Produce json
+// @Param body body model.AuthRequest true "Данные для аутентификации"
+// @Success 200 {object} model.AuthResponse "Успешная аутентификация."
+// @Failure 400 {object} model.ErrorResponse "Неверный запрос."
+// @Failure 401 {object} model.ErrorResponse "Неавторизован."
+// @Failure 500 {object} model.ErrorResponse "Внутренняя ошибка сервера."
+// @Router /api/auth [post]
 func (h *Auth) ReturnAuthToken(w http.ResponseWriter, r *http.Request) {
 	const op = "internal.http_server.hadnlers.auth.ReturnAuthToken()"
 
@@ -46,7 +50,7 @@ func (h *Auth) ReturnAuthToken(w http.ResponseWriter, r *http.Request) {
 
 	err = validator.New().Struct(userAuthData)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to validate body")
+		logger.Error().Err(err).Msg("Failed to validate request body")
 
 		w.WriteHeader(http.StatusBadRequest) // 400
 		render.JSON(w, r, model.ReturnErrResp("Неверный запрос."))
@@ -54,7 +58,6 @@ func (h *Auth) ReturnAuthToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID, err := h.postAuth.GetUserID(userAuthData)
-
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to get data from the database")
 

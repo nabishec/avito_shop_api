@@ -127,7 +127,7 @@ func newMigrationInstance(driver database.Driver) (*migrate.Migrate, error) {
 	log.Debug().Msg("Creating a migration instance")
 
 	migrationExmpl, err := migrate.NewWithDatabaseInstance(
-		"file://internal/storage/db/migrations/migrations-sql",
+		"file://migrations",
 		"postgres", driver)
 
 	if err != nil {

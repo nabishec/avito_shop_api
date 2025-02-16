@@ -1,4 +1,4 @@
-package db
+package db_connection
 
 import (
 	"fmt"
@@ -6,42 +6,36 @@ import (
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/jmoiron/sqlx"
-	"github.com/nabishec/avito_shop_api/internal/storage/db/migrations"
 
 	"github.com/rs/zerolog/log"
 )
 
-type Database struct {
+type DatabaseConnection struct {
 	dataSourceName string
 	DB             *sqlx.DB
 }
 
-func NewDatabase() (*Database, error) {
+func NewDatabaseConnection() (*DatabaseConnection, error) {
 	log.Info().Msg("Connecting to database")
 
 	log.Debug().Msg("Init database")
-	var database Database
+	var databaseCon DatabaseConnection
 
 	config, err := newDSN()
 	if err != nil {
 		return nil, err
 	}
 
-	err = database.connectDatabase(config)
-	if err != nil {
-		return nil, err
-	}
-
-	err = migrations.MigrationsUp(database.DB, database.dataSourceName)
+	err = databaseCon.connectDatabase(config)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Info().Msg("Сonnection to the database is successful")
-	return &database, err
+	return &databaseCon, err
 }
 
-func (db *Database) connectDatabase(config string) error {
+func (db *DatabaseConnection) connectDatabase(config string) error {
 	const op = "internal.storage.db.connectDatabase()"
 
 	log.Debug().Msg("Attempting to connect to database")
@@ -58,7 +52,7 @@ func (db *Database) connectDatabase(config string) error {
 	return nil
 }
 
-func (db *Database) PingDatabase() error {
+func (db *DatabaseConnection) PingDatabase() error {
 	const op = "internal.storage.db.PingDatabase()"
 
 	log.Info().Msg("Attempting to ping Database")
@@ -75,7 +69,7 @@ func (db *Database) PingDatabase() error {
 	return nil
 }
 
-func (db *Database) CloseDatabase() error {
+func (db *DatabaseConnection) CloseDatabase() error {
 	const op = "internal.storage.db.CloseDatabase()"
 
 	log.Info().Msg("Attempting to close database")
@@ -129,6 +123,6 @@ func newDSN() (string, error) {
 	dsn := dsnProtocol + "://" + dsnUserName + ":" + dsnPassword + "@" +
 		dsnHost + ":" + dsnPort + "/" + dsnDBName + "?" + dsnOptions
 
-	log.Debug().Msg("Reading dsn is successful")
+	log.Debug().Msgf("Reading dsn is successful dsn = %s", dsn)
 	return dsn, nil
 }

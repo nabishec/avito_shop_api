@@ -1,38 +1,44 @@
-package shop
+package buy
 
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
+
+	"github.com/nabishec/avito_shop_api/internal/http_server/middlweare"
 	"github.com/nabishec/avito_shop_api/internal/model"
 	"github.com/nabishec/avito_shop_api/internal/storage/db"
-	"github.com/rs/zerolog/log"
 )
-
-type GetBuy interface {
-	GetItemByUser(userID uuid.UUID, item string) error
-}
 
 type Buying struct {
 	getBuy GetBuy
 }
 
-func NewBuyItem(getBuy GetBuy) Buying {
-	return Buying{
+func NewBuying(getBuy GetBuy) *Buying {
+	return &Buying{
 		getBuy: getBuy,
 	}
 }
 
+// @Summary Купить предмет за монеты.
+// @Security BearerAuth
+// @Produce json
+// @Success 200 "Успешный ответ."
+// @Failure 400 {object} model.ErrorResponse "Неверный запрос."
+// @Failure 401 {object} model.ErrorResponse "Неавторизован."
+// @Failure 500 {object} model.ErrorResponse "Внутренняя ошибка сервера."
+// @Router /api/buy/{item} [get]
 func (h *Buying) BuyingItemByUser(w http.ResponseWriter, r *http.Request) {
-	const op = "internal.http_server.hadnlers.shop.BuyingItemByUser()"
+	const op = "internal.http_server.hadnlers.buy.BuyingItemByUser()"
 
 	logger := log.With().Str("fn", op).Logger()
 	logger.Debug().Msg("Request for buying has been received")
 
-	item := r.URL.Query().Get("item")
-	userID, err := uuid.FromBytes([]byte(r.URL.Query().Get("user_id")))
-
+	userIDStr := r.Context().Value(middlweare.RequestUserIDKey).(string)
+	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		logger.Error().Msg("Failed to get userID")
 
@@ -41,6 +47,23 @@ func (h *Buying) BuyingItemByUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = h.getBuy.UserIDExist(userID)
+	if err != nil {
+		if err == db.ErrUserIDNotExist {
+			log.Error().Err(err)
+
+			w.WriteHeader(http.StatusBadRequest) // 400
+			render.JSON(w, r, model.ReturnErrResp("Неверный запрос."))
+			return
+		}
+		logger.Error().Err(err).Msg("Failed check user ID in db")
+
+		w.WriteHeader(http.StatusInternalServerError) // 500
+		render.JSON(w, r, model.ReturnErrResp("Внутренняя ошибка сервера."))
+		return
+	}
+
+	item := chi.URLParam(r, "item")
 	if item == "" {
 		logger.Error().Msg("Failed to get parameters")
 
