@@ -251,6 +251,38 @@ func TestAuth(t *testing.T) {
 	})
 
 	t.Run("Not authorized", func(t *testing.T) {
+		reqBody1 := map[string]string{
+			"username": "testuser2",
+			"password": "testpass2",
+		}
+		jsonReq1, err := json.Marshal(reqBody1)
+		if err != nil {
+			t.Fatal("failed to marshal request body")
+		}
+
+		req, _ := http.NewRequest("POST", "/api/auth", bytes.NewBuffer(jsonReq1))
+		req.Header.Set("Content-Type", "application/json")
+
+		response := executeRequest(req, s)
+		checkResponseCode(t, http.StatusOK, response.Code)
+
+		reqBody2 := map[string]string{
+			"username": "testuser2",
+			"password": "testpass3",
+		}
+		jsonReq2, err := json.Marshal(reqBody2)
+		if err != nil {
+			t.Fatal("failed to marshal request body")
+		}
+
+		req, _ = http.NewRequest("POST", "/api/auth", bytes.NewBuffer(jsonReq2))
+		req.Header.Set("Content-Type", "application/json")
+
+		response = executeRequest(req, s)
+		checkResponseCode(t, http.StatusUnauthorized, response.Code)
+	})
+
+	t.Run("Incorrect Sending", func(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"username": "testuser2",
 			"password": 45327645,

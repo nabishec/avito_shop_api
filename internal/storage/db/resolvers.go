@@ -85,6 +85,11 @@ func (r *Storage) GetUserID(userAuthData model.AuthRequest) (userID uuid.UUID, e
 		return
 	}
 
+	if userAuthData.Password != password {
+		err = ErrIncorrectUserPassword
+		return
+	}
+
 	log.Debug().Msgf("%s's id was found", userAuthData.Name)
 	return
 }

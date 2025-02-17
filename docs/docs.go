@@ -48,6 +48,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/model.ErrorResponse"
                         }
                     },
+                    "401": {
+                        "description": "Неавторизован.",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Внутренняя ошибка сервера.",
                         "schema": {

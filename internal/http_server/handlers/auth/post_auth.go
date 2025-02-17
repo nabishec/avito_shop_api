@@ -8,6 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/nabishec/avito_shop_api/internal/model"
 	"github.com/nabishec/avito_shop_api/internal/pkg/token"
+	"github.com/nabishec/avito_shop_api/internal/storage/db"
 	"github.com/rs/zerolog/log"
 )
 
@@ -27,6 +28,7 @@ func NewAuth(postAuth PostAuth) Auth {
 // @Param body body model.AuthRequest true "Данные для аутентификации"
 // @Success 200 {object} model.AuthResponse "Успешная аутентификация."
 // @Failure 400 {object} model.ErrorResponse "Неверный запрос."
+// @Failure 401 {object} model.ErrorResponse "Неавторизован."
 // @Failure 500 {object} model.ErrorResponse "Внутренняя ошибка сервера."
 // @Router /api/auth [post]
 func (h *Auth) ReturnAuthToken(w http.ResponseWriter, r *http.Request) {
@@ -58,6 +60,13 @@ func (h *Auth) ReturnAuthToken(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := h.postAuth.GetUserID(userAuthData)
 	if err != nil {
+		if err == db.ErrIncorrectUserPassword {
+			logger.Error().Err(err)
+
+			w.WriteHeader(http.StatusUnauthorized) // 401
+			render.JSON(w, r, model.ReturnErrResp("Неверный запрос."))
+			return
+		}
 		logger.Error().Err(err).Msg("Failed to get data from the database")
 
 		w.WriteHeader(http.StatusInternalServerError) // 500
