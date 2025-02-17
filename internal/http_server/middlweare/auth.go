@@ -35,7 +35,7 @@ func Auth(next http.Handler) http.Handler {
 
 		auth := strings.Split(authLine, " ")
 
-		if auth[0] != "Baerer" {
+		if auth[0] != "Bearer" {
 			logger.Error().Msg("Invalid authorization scheme")
 
 			w.WriteHeader(http.StatusUnauthorized) // 401

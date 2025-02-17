@@ -101,10 +101,6 @@ paths:
           description: Неверный запрос.
           schema:
             $ref: '#/definitions/model.ErrorResponse'
-        "401":
-          description: Неавторизован.
-          schema:
-            $ref: '#/definitions/model.ErrorResponse'
         "500":
           description: Внутренняя ошибка сервера.
           schema:
@@ -112,12 +108,6 @@ paths:
       summary: Аутентификация и получение JWT-токена.
   /api/buy/{item}:
     get:
-      parameters:
-      - description: Название предмета
-        in: path
-        name: item
-        required: true
-        type: string
       produces:
       - application/json
       responses:

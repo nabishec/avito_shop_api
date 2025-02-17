@@ -48,12 +48,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/model.ErrorResponse"
                         }
                     },
-                    "401": {
-                        "description": "Неавторизован.",
-                        "schema": {
-                            "$ref": "#/definitions/model.ErrorResponse"
-                        }
-                    },
                     "500": {
                         "description": "Внутренняя ошибка сервера.",
                         "schema": {
@@ -74,15 +68,6 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "summary": "Купить предмет за монеты.",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Название предмета",
-                        "name": "item",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "Успешный ответ."

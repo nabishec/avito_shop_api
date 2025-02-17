@@ -24,7 +24,7 @@ func NewStorage(db *sqlx.DB) *Storage {
 	}
 }
 
-func (r *Storage) UserNameExist(userName string) error {
+func (r *Storage) UserNameExist(userName string) (err error) {
 	const op = "internal.storage.db.UserNameExist()"
 
 	log.Debug().Msgf("%s started", op)
@@ -34,33 +34,33 @@ func (r *Storage) UserNameExist(userName string) error {
 						WHERE name = $1`
 
 	var userID uuid.UUID
-	err := r.db.QueryRow(queryGetUserID, userName).Scan(&userID)
+	err = r.db.QueryRow(queryGetUserID, userName).Scan(&userID)
 
 	if err != nil && err == sql.ErrNoRows {
 		return ErrUserNameNotExist
 	}
 
-	return fmt.Errorf("%s:%w", op, err)
+	return err
 
 }
 
-func (r *Storage) UserIDExist(userID uuid.UUID) error {
+func (r *Storage) UserIDExist(userID uuid.UUID) (err error) {
 	const op = "internal.storage.db.UserIDExist()"
 
 	log.Debug().Msgf("%s started", op)
 
-	queryGetUserID := `SELECT name
+	queryGetUserName := `SELECT name
 						FROM Users
 						WHERE user_id = $1`
 
 	var userName string
-	err := r.db.QueryRow(queryGetUserID, userName).Scan(&userID)
+	err = r.db.QueryRow(queryGetUserName, userID).Scan(&userName)
 
 	if err != nil && err == sql.ErrNoRows {
 		return ErrUserIDNotExist
 	}
 
-	return fmt.Errorf("%s:%w", op, err)
+	return err
 
 }
 
@@ -152,6 +152,10 @@ func (r *Storage) GetItemByUser(userID uuid.UUID, item string) error {
 		}
 	}()
 
+	queryCheckItem := `SELECT item_id
+							FROM Items
+							WHERE type = $1`
+
 	queryWithdrawingCoinsForBuying := `UPDATE Balance
 								SET coins_number = coins_number - (SELECT price FROM Items WHERE type = $1)
 								WHERE user_id = $2`
@@ -161,6 +165,11 @@ func (r *Storage) GetItemByUser(userID uuid.UUID, item string) error {
 								ON CONFLICT (user_id, item_id)
 								DO UPDATE SET quantity = Inventory.quantity + 1;`
 
+	var item_id int
+	err = tx.QueryRow(queryCheckItem, item).Scan(&item_id)
+	if err != nil && err == sql.ErrNoRows {
+		return ErrItemNotExist
+	}
 	_, err = tx.Exec(queryWithdrawingCoinsForBuying, &item, &userID)
 	if err != nil {
 		//TODO: Check it working or not

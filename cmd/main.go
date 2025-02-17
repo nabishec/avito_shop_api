@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/nabishec/avito_shop_api/cmd/db_connection"
 	"github.com/nabishec/avito_shop_api/internal/http_server/handlers/auth"
 	"github.com/nabishec/avito_shop_api/internal/http_server/handlers/buy"
@@ -49,7 +50,7 @@ func main() {
 	}
 
 	//TODO: init config
-	err := loadEnv()
+	err := LoadEnv()
 	if err != nil {
 		log.Error().Err(err).Msg("don't found configuration")
 		os.Exit(1)
@@ -64,28 +65,10 @@ func main() {
 	}
 	log.Info().Msg("Database init successful")
 
-	storage := db.NewStorage(dbConnection.DB)
 	//TODO: init middlewear
-	Router := chi.NewRouter()
+	s := CreateNewServer(dbConnection.DB)
 
-	sendCoin := send.NewSendingCoins(storage)
-	getInformation := info.NewUserInformation(storage)
-	buyItem := buy.NewBuying(storage)
-	authentication := auth.NewAuth(storage)
-
-	Router.Group(func(r chi.Router) {
-		r.Get("/swagger/*", httpSwagger.WrapHandler)
-		r.Post("/api/auth", authentication.ReturnAuthToken)
-	})
-
-	// Require Authentication
-	Router.Group(func(r chi.Router) {
-		r.Use(middlweare.Auth)
-		r.Get("/api/buy/{item}", buyItem.BuyingItemByUser)
-		r.Post("/api/sendCoin", sendCoin.SendCoins)
-		r.Get("/api/info", getInformation.ReturnUserInfo)
-	})
-
+	s.MountHandlers()
 	//TODO: run server
 	wrTime, err := time.ParseDuration(os.Getenv("TIMEOUT"))
 	if err != nil {
@@ -100,7 +83,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         ":" + os.Getenv("SERVER_PORT"),
-		Handler:      router,
+		Handler:      s.Router,
 		ReadTimeout:  wrTime,
 		WriteTimeout: wrTime,
 		IdleTimeout:  idleTime,
@@ -114,7 +97,41 @@ func main() {
 	log.Error().Msg("Program ended")
 }
 
-func loadEnv() error {
+type Server struct {
+	Router  *chi.Mux
+	Storage *db.Storage
+}
+
+func CreateNewServer(dbConnection *sqlx.DB) *Server {
+	s := &Server{}
+	s.Router = chi.NewRouter()
+	s.Storage = db.NewStorage(dbConnection)
+	return s
+}
+
+func (s *Server) MountHandlers() {
+
+	sendCoin := send.NewSendingCoins(s.Storage)
+	getInformation := info.NewUserInformation(s.Storage)
+	buyItem := buy.NewBuying(s.Storage)
+	authentication := auth.NewAuth(s.Storage)
+
+	s.Router.Group(func(r chi.Router) {
+		r.Get("/swagger/*", httpSwagger.WrapHandler)
+		r.Post("/api/auth", authentication.ReturnAuthToken)
+	})
+
+	// Require Authentication
+	s.Router.Group(func(r chi.Router) {
+		r.Use(middlweare.Auth)
+		r.Get("/api/buy/{item}", buyItem.BuyingItemByUser)
+		r.Post("/api/sendCoin", sendCoin.SendCoins)
+		r.Get("/api/info", getInformation.ReturnUserInfo)
+	})
+
+}
+
+func LoadEnv() error {
 	const op = "cmd.loadEnv()"
 	err := godotenv.Load(".env")
 	if err != nil {

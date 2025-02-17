@@ -75,7 +75,7 @@ func (h *Buying) BuyingItemByUser(w http.ResponseWriter, r *http.Request) {
 
 	err = h.getBuy.GetItemByUser(userID, item)
 	if err != nil {
-		if err == db.ErrNotEnoughCoins {
+		if err == db.ErrNotEnoughCoins || err == db.ErrItemNotExist {
 			logger.Error().Err(err)
 
 			w.WriteHeader(http.StatusBadRequest) // 400

@@ -27,7 +27,6 @@ func NewAuth(postAuth PostAuth) Auth {
 // @Param body body model.AuthRequest true "Данные для аутентификации"
 // @Success 200 {object} model.AuthResponse "Успешная аутентификация."
 // @Failure 400 {object} model.ErrorResponse "Неверный запрос."
-// @Failure 401 {object} model.ErrorResponse "Неавторизован."
 // @Failure 500 {object} model.ErrorResponse "Внутренняя ошибка сервера."
 // @Router /api/auth [post]
 func (h *Auth) ReturnAuthToken(w http.ResponseWriter, r *http.Request) {

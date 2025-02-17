@@ -9,7 +9,7 @@ services:
     ports:
       - 5432:5432
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U avito_user -d avito_shop"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 2s
       timeout: 5s
       retries: 5
@@ -31,6 +31,31 @@ services:
         condition: service_healthy
     volumes:
       - ./migrations:/migrations
+    networks:
+      - avito_shop_network
+    env_file:
+      - .env
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: avito_shop_app
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_PROTOCOL: ${DB_PROTOCOL}
+      DB_OPTIONS: ${DB_OPTIONS}
+    ports:
+      - "8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
     networks:
       - avito_shop_network
     env_file:
