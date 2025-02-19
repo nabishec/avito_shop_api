@@ -299,6 +299,9 @@ func (r *Storage) SendCoinsToUser(sendData model.SendCoinRequest, userID uuid.UU
 						VALUES ($1,(SELECT user_id FROM Users WHERE name = $2),$3)
 						RETURNING to_user_id`
 
+	queryReceiveCoins := `INSERT INTO  Received (user_id, from_user_id, amount)
+						VALUES ($1,$2,$3)`
+
 	queryDepositingCoins := `UPDATE Balance
 								SET coins_number = coins_number + $1
 								WHERE user_id = $2`
@@ -319,6 +322,11 @@ func (r *Storage) SendCoinsToUser(sendData model.SendCoinRequest, userID uuid.UU
 
 	var toUserID uuid.UUID
 	err = tx.QueryRow(querySendCoins, userID, sendData.ToUser, sendData.Amount).Scan(&toUserID)
+	if err != nil {
+		return fmt.Errorf("%s:%w", op, err)
+	}
+
+	_, err = tx.Exec(queryReceiveCoins, toUserID, userID, sendData.Amount)
 	if err != nil {
 		return fmt.Errorf("%s:%w", op, err)
 	}
