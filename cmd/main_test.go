@@ -171,10 +171,28 @@ func TestSendCoin(t *testing.T) {
 		checkResponseCode(t, http.StatusUnauthorized, response.Code)
 	})
 
-	t.Run("Incorrect Buying", func(t *testing.T) {
+	t.Run("Incorrect Buying with negative amount", func(t *testing.T) {
 		reqBody := map[string]interface{}{
 			"toUser": toUser,
 			"amount": -10,
+		}
+		jsonReq, err := json.Marshal(reqBody)
+		if err != nil {
+			t.Fatal("failed to marshal request body")
+		}
+
+		req, _ := http.NewRequest("POST", "/api/sendCoin", bytes.NewBuffer(jsonReq))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+
+		response := executeRequest(req, s)
+		checkResponseCode(t, http.StatusBadRequest, response.Code)
+	})
+
+	t.Run("Incorrect Buying with amount is more than amount in account", func(t *testing.T) {
+		reqBody := map[string]interface{}{
+			"toUser": toUser,
+			"amount": 10000,
 		}
 		jsonReq, err := json.Marshal(reqBody)
 		if err != nil {
