@@ -112,6 +112,12 @@ paths:
       summary: Аутентификация и получение JWT-токена.
   /api/buy/{item}:
     get:
+      parameters:
+      - description: Название предмета
+        in: path
+        name: item
+        required: true
+        type: string
       produces:
       - application/json
       responses:

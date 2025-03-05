@@ -71,13 +71,13 @@ func main() {
 	s.MountHandlers()
 	//TODO: run server
 	wrTime, err := time.ParseDuration(os.Getenv("TIMEOUT"))
-	if err != nil {
-		log.Error().Err(err).Msg("timeout not received from env")
+	if err != nil || wrTime == 0 {
+		log.Warn().Err(err).Msg("timeout not received from env")
 		wrTime = 4 * time.Second
 	}
 	idleTime, err := time.ParseDuration(os.Getenv("IDLE_TIMEOUT"))
-	if err != nil {
-		log.Error().Err(err).Msg("idle timeout not received from env")
+	if err != nil || idleTime == 0 {
+		log.Warn().Err(err).Msg("idle timeout not received from env")
 		idleTime = 60 * time.Second // CHECK THIS
 	}
 

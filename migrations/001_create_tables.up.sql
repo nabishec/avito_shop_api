@@ -52,7 +52,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS unique_inventory_idx ON Inventory (user_id, it
 CREATE INDEX IF NOT EXISTS sent_user_id_idx ON Sent (user_id);
 CREATE INDEX IF NOT EXISTS received_user_id_idx ON Received (user_id);
 
--- +goose StatementEndINSERT INTO item (type, price) VALUES
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+
+INSERT INTO items (type, price) VALUES
     ('t-shirt', 80),
     ('cup', 20),
     ('book', 50),
@@ -63,3 +67,5 @@ CREATE INDEX IF NOT EXISTS received_user_id_idx ON Received (user_id);
     ('socks', 10),
     ('wallet', 50),
     ('pink-hoody', 500);
+
+-- +goose StatementEnd

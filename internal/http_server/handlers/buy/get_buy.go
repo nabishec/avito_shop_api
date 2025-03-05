@@ -26,6 +26,7 @@ func NewBuying(getBuy GetBuy) *Buying {
 // @Summary Купить предмет за монеты.
 // @Security BearerAuth
 // @Produce json
+// @Param item path string true "Название предмета"
 // @Success 200 "Успешный ответ."
 // @Failure 400 {object} model.ErrorResponse "Неверный запрос."
 // @Failure 401 {object} model.ErrorResponse "Неавторизован."

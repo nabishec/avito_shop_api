@@ -74,6 +74,15 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "summary": "Купить предмет за монеты.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Название предмета",
+                        "name": "item",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Успешный ответ."

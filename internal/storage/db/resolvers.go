@@ -8,10 +8,12 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgconn"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nabishec/avito_shop_api/internal/model"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Storage struct {
@@ -73,8 +75,8 @@ func (r *Storage) GetUserID(userAuthData model.AuthRequest) (userID uuid.UUID, e
 						FROM Users
 						WHERE name = $1`
 
-	var password string
-	err = r.db.QueryRow(queryGetUserID, userAuthData.Name).Scan(&userID, &password)
+	var passwordHash string
+	err = r.db.QueryRow(queryGetUserID, userAuthData.Name).Scan(&userID, &passwordHash)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			userID, err = r.AddUser(userAuthData)
@@ -85,7 +87,8 @@ func (r *Storage) GetUserID(userAuthData model.AuthRequest) (userID uuid.UUID, e
 		return
 	}
 
-	if userAuthData.Password != password {
+	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(userAuthData.Password))
+	if err != nil {
 		err = ErrIncorrectUserPassword
 		return
 	}
@@ -99,6 +102,13 @@ func (r *Storage) AddUser(userAuthData model.AuthRequest) (userID uuid.UUID, err
 
 	log.Debug().Msgf("%s started", op)
 
+	passwordHash, err := createPasswordHash(userAuthData.Password)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed create password hash")
+		err = ErrIncorrectUserPassword
+		return
+	}
+
 	balanceForNewUser, err := strconv.Atoi(os.Getenv("BALANCE_FOR_NEW_USER"))
 	if err != nil {
 		balanceForNewUser = 1000
@@ -108,7 +118,7 @@ func (r *Storage) AddUser(userAuthData model.AuthRequest) (userID uuid.UUID, err
 	queryAddBalanceToUser := `INSERT INTO  Balance (user_id, coins_number)
 						VALUES ($1,$2)`
 
-	//create transaction
+	// create transaction
 	tx, err := r.db.Begin()
 	if err != nil {
 		return
@@ -120,7 +130,7 @@ func (r *Storage) AddUser(userAuthData model.AuthRequest) (userID uuid.UUID, err
 	}()
 
 	userID = uuid.New()
-	_, err = tx.Exec(queryAddUser, userID, userAuthData.Name, userAuthData.Password)
+	_, err = tx.Exec(queryAddUser, userID, userAuthData.Name, passwordHash)
 	if err != nil {
 		err = fmt.Errorf("%s:%w", op, err)
 		return
@@ -140,6 +150,20 @@ func (r *Storage) AddUser(userAuthData model.AuthRequest) (userID uuid.UUID, err
 	log.Debug().Msgf("user %s add successfully", userAuthData.Name)
 	return
 
+}
+
+func createPasswordHash(password string) (string, error) {
+	const op = "internal.http_server.hadnlers.auth.createPasswordHash()"
+
+	if len(password) < 1 {
+		return "", fmt.Errorf("%s:%s", op, "password is empty")
+	}
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("%s:%w", op, err)
+	}
+	return string(passwordHash), nil
 }
 
 func (r *Storage) GetItemByUser(userID uuid.UUID, item string) error {
@@ -309,8 +333,8 @@ func (r *Storage) SendCoinsToUser(sendData model.SendCoinRequest, userID uuid.UU
 	_, err = tx.Exec(queryWithdrawingCoins, sendData.Amount, userID)
 	if err != nil {
 		//TODO: Check it working or not
-		if pqErr, ok := err.(*pq.Error); ok {
-			if pqErr.Code == "23514" || pqErr.Constraint == "positive_coins_number" {
+		if pqErr, ok := err.(*pgconn.PgError); ok {
+			if pqErr.Code == "23514" || pqErr.ConstraintName == "positive_coins_number" {
 
 				err = ErrNotEnoughCoins
 				return err

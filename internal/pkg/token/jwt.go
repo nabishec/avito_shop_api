@@ -15,12 +15,12 @@ func CreateJWT(userID uuid.UUID) (token string, err error) {
 
 	var signingKey = []byte(os.Getenv("SIGNING_KEY"))
 
-	//jti = uuid.New().String()
+	// jti = uuid.New().String()
 	sub := userID.String()
 	exp := time.Now().Unix() + 10800 // 3 hour
 
 	claims := jwt.StandardClaims{
-		//Id:        jti,
+		// Id:        jti,
 		Subject:   sub,
 		ExpiresAt: exp,
 	}
